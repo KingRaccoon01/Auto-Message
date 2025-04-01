@@ -1,59 +1,144 @@
 import pywhatkit as kit
+import json
+import os
+import argparse
 
-group_or_individual_question = input("Group Message or Individual:")
-group_or_individual = group_or_individual_question.lower()
+# Help message
+HELP_MESSAGE = """
+📌 **Automatic WhatsApp Message Sender - Help Guide** 📌
 
-photo_or_message_question = input("Enter whether you will send a message or a photo:")
-photo_or_message = photo_or_message_question.lower()
+This program uses the **pywhatkit** library to send scheduled messages or images (PNG, JPG) 
+to individual contacts or groups via WhatsApp.
 
-person_list = {}
+🔹 **Steps to Use**
+1️⃣ **Open WhatsApp Web:**  
+   - Before running the program, open **WhatsApp Web** in your browser.  
+   - If WhatsApp Web is not open, the message-sending process may fail!  
 
-group_list = {}
+2️⃣ **Run the Program:**  
+   - **For Windows:**  
+     ```bash
+     python otomsg.py
+     ```
+   - **To display the help menu:**  
+     ```bash
+     python otomsg.py -h
+     ```
+   - **Follow the instructions in the program to send messages to a group or an individual.**  
+
+3️⃣ **Adding Contacts or Groups**  
+   - To **add a new individual contact**:  
+     - When the program asks, **"Would you like to add a new contact?"**, type **"yes"**.  
+     - Enter the person's name and phone number.  
+     - The contact will be saved and available for future use.  
+   - To **add a new group**:  
+     - Obtain the group ID from WhatsApp.  
+     - Follow the group addition steps when prompted by the program.  
+
+4️⃣ **Sending Messages:**  
+   - Choose whether to send an **individual message** or a **group message**.  
+   - Select the recipient and enter the message.  
+   - Specify the **hour and minute** for the message to be sent.  
+   - The message will be **automatically sent via WhatsApp at the scheduled time!** 🎯  
+
+💡 **Additional Information**
+- Before running the program, you can manually edit **rehber.json** to manage contacts.  
+- **Do not close WhatsApp Web while sending messages!**  
+- Ensure that both your phone and computer have an active internet connection.  
+
+🚀 **You are now ready to send automated WhatsApp messages!**  
+If you have any questions, you can check the help menu again with:  
+```bash
+python otomsg.py -h" \" \
+    """
+
+# Handle arguments
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("-h", "--help", action="store_true", help="Show help message")
+args, _ = parser.parse_known_args()
+
+# Show help message and exit if -h or --help is used
+if args.help:
+    print(HELP_MESSAGE)
+    exit()
+
+# Load contacts from JSON
+def load_data(filename="contacts.json"):
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+    return {"person_list": {}, "group_list": {}}
+
+# Save contacts to JSON
+def save_data(data, filename="contacts.json"):
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4)
+
+# Load saved contacts
+data = load_data()
+person_list = data["person_list"]
+group_list = data["group_list"]
+
+# Ask the user for message type
+group_or_individual = input("Group Message or Individual: ").lower()
+photo_or_message = input("Enter whether you will send a message or a photo: ").lower()
 
 if group_or_individual == "individual":
     
-    if photo_or_message == "message":
-
-        message = input("Enter Message:")
-        hat_number = input("Enter the line code:")
-        person = person_list[input("Enter Who You Will Send the Message To:")]
-        phone_number = hat_number + person
-        hour = int(input("Enter Time:"))
-        minute = int(input("Enter Minute:"))
-
-        kit.sendwhatmsg(phone_number, message, hour, minute, 20, True, 5)
-
-    elif photo_or_message == "photo":
-
-        photo = input("Enter Photo:")
-        hat_number = input("Enter the line code:")
-        person = person_list[input("Enter Who You Will Send the Message To:")]
-        phone_number = hat_number + person
-        hour = int(input("Enter Time:"))
-        minute = int(input("Enter Minute:"))
-
-        kit.sendwhats_image(phone_number, photo, hour, minute, 20, True, 5)
+    add_person = input("Would you like to add a new contact? (yes/no): ").lower()
+    if add_person == "yes":
+        name = input("Enter the name of the person: ")
+        phone = input("Enter their phone number (with country code, e.g. +1...): ")
+        person_list[name] = phone
+        save_data({"person_list": person_list, "group_list": group_list})  # Save updated list
     
+    recipient_name = input("Enter the contact name to send the message: ")
+    if recipient_name in person_list:
+        phone_number = person_list[recipient_name]
+        hour = int(input("Enter Time (Hour): "))
+        minute = int(input("Enter Minute: "))
+
+        if photo_or_message == "message":
+            message = input("Enter Message: ")
+            kit.sendwhatmsg(phone_number, message, hour, minute, 20, True, 5)
+
+        elif photo_or_message == "photo":
+            photo = input("Enter Photo Path: ")
+            kit.sendwhats_image(phone_number, photo, hour, minute, 20, True, 5)
+
+        else:
+            print("Select a Valid File Type")
     else:
-        print("Select a Valid File Type")
+        print("Contact not found. Please add it first.")
 
-if group_or_individual == "grup":
-
-    if photo_or_message == "message":
-        
-        message = input("Enter message:")
-        group_id = group_list[input("Enter Who You Will Send the Message To:")]
-        hour = int(input("Enter Time:"))
-        minute = int(input("Enter Minute:"))
-
-        kit.sendwhatmsg_to_group(group_id, message, hour, minute, 20, True, 5)
-
-    if photo_or_message  == "photo":
-
-        photo = input("Enter Photo:")
-        group_id = group_list[input("Enter Who You Will Send the Message To:")]
-        hour = int(input("Enter Time:"))
-        minute = int(input("Enter Minute:"))
-
-        kit.sendwhats_image(group_id, photo, hour, minute)
+elif group_or_individual == "group":
     
+    add_group = input("Would you like to add a new group? (yes/no): ").lower()
+    if add_group == "yes":
+        group_name = input("Enter the name of the group: ")
+        group_id = input("Enter the group ID: ")
+        group_list[group_name] = group_id
+        save_data({"person_list": person_list, "group_list": group_list})  # Save updated list
+    
+    group_name = input("Enter the group name to send the message: ")
+    if group_name in group_list:
+        group_id = group_list[group_name]
+
+        hour = int(input("Enter Time (Hour): "))
+        minute = int(input("Enter Minute: "))
+
+        if photo_or_message == "message":
+            message = input("Enter message: ")
+            kit.sendwhatmsg_to_group(group_id, message, hour, minute, 20, True, 5)
+
+        elif photo_or_message == "photo":
+            photo = input("Enter Photo Path: ")
+            kit.sendwhats_image(group_id, photo, hour, minute)
+
+        else:
+            print("Select a Valid File Type")
+    else:
+        print("Group not found. Please add it first.")
+
+else:
+    print("Invalid choice, please enter 'individual' or 'group'.")
