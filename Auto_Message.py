@@ -36,8 +36,8 @@ to individual contacts or groups via WhatsApp.
      - Follow the group addition steps when prompted by the program.  
 
 4️⃣ **Sending Messages:**  
-   - Choose whether to send an **individual message** or a **group message**.  
-   - Select the recipient and enter the message.  
+   - Choose whether to send an **individual message**, a **group message**, or a **bulk message**.  
+   - Select the recipient(s) and enter the message.  
    - Specify the **hour and minute** for the message to be sent.  
    - The message will be **automatically sent via WhatsApp at the scheduled time!** 🎯  
 
@@ -49,7 +49,7 @@ to individual contacts or groups via WhatsApp.
 🚀 **You are now ready to send automated WhatsApp messages!**  
 If you have any questions, you can check the help menu again with:  
 ```bash
-python otomsg.py -h" \" \
+python otomsg.py -h" " \
     """
 
 # Handle arguments
@@ -80,18 +80,18 @@ person_list = data["person_list"]
 group_list = data["group_list"]
 
 # Ask the user for message type
-group_or_individual = input("Group Message or Individual: ").lower()
+group_or_individual = input("Group Message or Individual or Bulk: ").lower()
 photo_or_message = input("Enter whether you will send a message or a photo: ").lower()
 
 if group_or_individual == "individual":
-    
+
     add_person = input("Would you like to add a new contact? (yes/no): ").lower()
     if add_person == "yes":
         name = input("Enter the name of the person: ")
         phone = input("Enter their phone number (with country code, e.g. +1...): ")
         person_list[name] = phone
-        save_data({"person_list": person_list, "group_list": group_list})  # Save updated list
-    
+        save_data({"person_list": person_list, "group_list": group_list})
+
     recipient_name = input("Enter the contact name to send the message: ")
     if recipient_name in person_list:
         phone_number = person_list[recipient_name]
@@ -112,14 +112,14 @@ if group_or_individual == "individual":
         print("Contact not found. Please add it first.")
 
 elif group_or_individual == "group":
-    
+
     add_group = input("Would you like to add a new group? (yes/no): ").lower()
     if add_group == "yes":
         group_name = input("Enter the name of the group: ")
         group_id = input("Enter the group ID: ")
         group_list[group_name] = group_id
-        save_data({"person_list": person_list, "group_list": group_list})  # Save updated list
-    
+        save_data({"person_list": person_list, "group_list": group_list})
+
     group_name = input("Enter the group name to send the message: ")
     if group_name in group_list:
         group_id = group_list[group_name]
@@ -140,5 +140,28 @@ elif group_or_individual == "group":
     else:
         print("Group not found. Please add it first.")
 
+elif group_or_individual == "bulk":
+    print("\nAvailable contacts:")
+    for name in person_list:
+        print(f"- {name}")
+
+    selected_names = input("Enter names separated by commas (or type 'all' to message everyone): ").strip()
+
+    if selected_names.lower() == "all":
+        recipients = list(person_list.items())
+    else:
+        recipients = [(name.strip(), person_list[name.strip()]) for name in selected_names.split(",") if name.strip() in person_list]
+
+    hour = int(input("Enter Time (Hour): "))
+    minute = int(input("Enter Minute: "))
+    message = input("Enter Message: ")
+
+    for idx, (name, number) in enumerate(recipients):
+        msg_minute = minute + idx
+        adj_hour = hour + (msg_minute // 60)
+        adj_minute = msg_minute % 60
+        print(f"Scheduled message for {name} at {adj_hour}:{adj_minute:02}")
+        kit.sendwhatmsg(number, message, adj_hour, adj_minute, 20, True, 5)
+
 else:
-    print("Invalid choice, please enter 'individual' or 'group'.")
+    print("Invalid choice, please enter 'individual', 'group', or 'bulk'.")
